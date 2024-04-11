@@ -20,10 +20,10 @@ app.use("/messages",messageRoutes);
 app.use("/users",userRoutes);
 
 
-// app.get("/",(req,res)=>{
-//     //root route more like home page ka route http://localhost:3000/
-//     res.send("Hello World!!");
-// });
+app.get("/",(req,res)=>{
+    //root route more like home page ka route http://localhost:3000/
+    res.send("Hello World!!");
+});
 
 
 
