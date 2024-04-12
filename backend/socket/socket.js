@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const io = new  Server(server,{
     cors:{
         // origin:["http://localhost:3000"],
-        origin:["https://vchat-bpx8.onrender.com/"],
+        origin:["https://vchat-bpx8.onrender.com"],
         methods:["GET","POST"]
     }
 });
@@ -28,10 +28,13 @@ io.on('connection',(socket)=>{
     io.emit("getOnlineUsers",Object.keys(usersSocketMap));
 
     //socket.on() is used to listen to the events. can be used both on client and server side.
-    socket.on("disconnect",()=>{
-        console.log("user disconnected",socket.id);
-        delete usersSocketMap[userId];
-        io.emit("getOnlineUsers",Object.keys(usersSocketMap));
+    socket.on("disconnect", () => {
+        console.log("user disconnected", socket.id);
+        const userId = socket.handshake.query.userId;
+        if (userId) {
+            delete usersSocketMap[userId];
+            io.emit("getOnlineUsers", Object.keys(usersSocketMap));
+        }
     })
 });
 
