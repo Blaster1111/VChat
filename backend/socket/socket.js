@@ -7,7 +7,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new  Server(server,{
     cors:{
-        // origin:["http://localhost:3000"],
         origin:["https://vchat-bpx8.onrender.com"],
         methods:["GET","POST"]
     }
@@ -38,6 +37,17 @@ io.on('connection',(socket)=>{
             io.emit("getOnlineUsers", Object.keys(usersSocketMap));
         }
     })
+
+    socket.on("message", (msg) => {
+        console.log("Received message:", msg);
+        const { receiverId, message } = msg;
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("message", { senderId: userId, message });
+        } else {
+          console.log("Receiver not found.");
+        }
+      });
 });
 
 

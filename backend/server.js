@@ -13,7 +13,6 @@ const PORT = process.env.PORT || 3000;
 dotenv.config(); // port is a variable in .env wala file and its taking value from there to run server instead of giving a hardcoded value
 
 app.use(express.json()); //to parse the incoming requests with JSON payloads(from req.body)
-app.use(cookieParser());
 
 app.use("/auth",authRoutes); //it says that some route starts with api/auth and its directing to auth.route then auth.controller then user.model
 app.use("/messages",messageRoutes);
