@@ -13,9 +13,10 @@ const io = new Server(server, {
 });
 
 export const getReceiverSocketId = (receiverId) => {
-  return usersSocketMap[receiverId];
-};
-
+    return Object.entries(usersSocketMap).find(
+      ([userId, socketId]) => userId === receiverId.toString()
+    )?.[1];
+  };
 const usersSocketMap = {}; //{userId:socketId}
 
 io.on('connection', (socket) => {
@@ -31,6 +32,36 @@ io.on('connection', (socket) => {
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
     console.log(`User ${userId} joined room ${roomId}`);
+  });
+
+  socket.on('message', async ({ message, senderId, receiverId }) => {
+    try {
+      const newMessage = new Message({
+        senderId,
+        receiverId,
+        message,
+      });
+  
+      let conversation = await Conversation.findOne({
+        participants: { $all: [senderId, receiverId] },
+      });
+  
+      if (!conversation) {
+        conversation = await Conversation.create({
+          participants: [senderId, receiverId],
+        });
+      }
+  
+      conversation.messages.push(newMessage._id);
+      await Promise.all([conversation.save(), newMessage.save()]);
+  
+      const receiverSocketId = getReceiverSocketId(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('newMessage', newMessage);
+      }
+    } catch (error) {
+      console.error('Error handling message event:', error);
+    }
   });
 
   socket.on("disconnect", () => {
