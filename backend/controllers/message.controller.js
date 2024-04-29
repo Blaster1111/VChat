@@ -1,6 +1,7 @@
     import { decodeAuthToken } from "../middleware/protectRoute.js";
     import Conversation from "../models/conversation.model.js";
     import Message from "../models/message.model.js";
+    import { io } from '../socket/socket.js';
     import { getReceiverSocketId } from "../socket/socket.js";
 
     export const sendMessage = async(req,res)=>{
