@@ -34,8 +34,25 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} joined room ${roomId}`);
   });
 
-  socket.on('message', async ({ message, senderId, receiverId }) => {
+  ocket.on('authToken', async (authToken) => {
     try {
+      const decodedToken = decodeAuthToken(authToken);
+      const senderId = decodedToken.userId;
+  
+      // Add the senderId to the socket object or store it in a map
+      // for future reference when handling messages
+      socket.senderId = senderId;
+  
+      // You can also emit an event back to the client if needed
+      socket.emit('senderIdReceived', senderId);
+    } catch (error) {
+      console.error('Error decoding authToken:', error);
+    }
+  });
+
+  socket.on('message', async ({ message, receiverId }) => {
+    try {
+      const senderId = socket.senderId;
       const newMessage = new Message({
         senderId,
         receiverId,
@@ -72,6 +89,8 @@ io.on('connection', (socket) => {
       io.emit("getOnlineUsers", Object.keys(usersSocketMap));
     }
   });
+
+  s
 });
 
 export { app, io, server };
