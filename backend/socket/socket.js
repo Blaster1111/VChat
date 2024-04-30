@@ -37,10 +37,7 @@ io.on('connection', (socket) => {
     try {
       const decodedToken = decodeAuthToken(authToken);
       const senderId = decodedToken.userId;
-      // Add the senderId to the socket object or store it in a map
-      // for future reference when handling messages
-      socket.senderId = senderId;
-      // You can also emit an event back to the client if needed
+      socket.senderId = senderId; // Setting the senderId on the socket object
       socket.emit('senderIdReceived', senderId);
     } catch (error) {
       console.error('Error decoding authToken:', error);
