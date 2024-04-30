@@ -4,80 +4,53 @@ import express from "express";
 import { decodeAuthToken } from "../middleware/protectRoute.js";
 
 const app = express();
+
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: ["https://vchat-bpx8.onrender.com"],
-    methods: ["GET", "POST"]
-  }
+const io = new  Server(server,{
+    cors:{
+        origin:["https://vchat-bpx8.onrender.com"],
+        methods:["GET","POST"]
+    }
 });
 
-export const getReceiverSocketId = (receiverId) => {
-  return Object.entries(usersSocketMap).find(([userId, socketId]) => userId === receiverId.toString())?.[1];
+export const getReceiverSocketId = (receiverId) =>{
+    return usersSocketMap[receiverId];
 };
 
 const usersSocketMap = {}; //{userId:socketId}
 
-io.on('connection', (socket) => {
-  console.log("a user connected", socket.id);
-  const authToken = socket.handshake.query.authToken;
-  const userId = decodeAuthToken(authToken);
+io.on('connection',(socket)=>{
+    console.log("a user connected",socket.id);
 
-  if (userId !== "undefined") {
-    usersSocketMap[userId] = socket.id;
-    io.emit("getOnlineUsers", Object.keys(usersSocketMap));
-  }
+    const authToken = socket.handshake.query.authToken;
+    const userId = decodeAuthToken(authToken); //decoding authToken from queries to parse it to userId.
 
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${userId} joined room ${roomId}`);
-  });
+    if(userId!="undefined") usersSocketMap[userId] = socket.id;
 
-  socket.on('authToken', async (authToken) => {
-    try {
-      const decodedToken = decodeAuthToken(authToken);
-      const senderId = decodedToken.userId;
-      socket.senderId = senderId; // Setting the senderId on the socket object
-      socket.emit('senderIdReceived', senderId);
-    } catch (error) {
-      console.error('Error decoding authToken:', error);
-    }
-  });
+    io.emit("getOnlineUsers",Object.keys(usersSocketMap));
 
-  socket.on('message', async ({ message, receiverId }) => {
-    try {
-      const senderId = socket.senderId;
-      const newMessage = new Message({ senderId, receiverId, message });
-      let conversation = await Conversation.findOne({ participants: { $all: [senderId, receiverId] } });
-      if (!conversation) {
-        conversation = await Conversation.create({ participants: [senderId, receiverId] });
-      }
-      conversation.messages.push(newMessage._id);
-      await Promise.all([conversation.save(), newMessage.save()]);
-  
-      // Emit the message to the sender
-      socket.emit('newMessage', newMessage);
-  
-      // Check if the receiver is not the same as the sender
-      if (senderId !== receiverId) {
+    //socket.on() is used to listen to the events. can be used both on client and server side.
+    socket.on("disconnect", () => {
+        console.log("user disconnected", socket.id);
+        const userId = socket.handshake.query.userId;
+        if (userId) {
+            delete usersSocketMap[userId];
+            io.emit("getOnlineUsers", Object.keys(usersSocketMap));
+        }
+    })
+
+    socket.on("message", (msg) => {
+        console.log("Received message:", msg);
+        const { receiverId, message } = msg;
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
-          io.to(receiverSocketId).emit('newMessage', newMessage);
+          io.to(receiverSocketId).emit("message", { senderId: userId, message });
+        } else {
+          console.log("Receiver not found.");
         }
-      }
-    } catch (error) {
-      console.error('Error handling message event:', error);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("user disconnected", socket.id);
-    const userId = socket.handshake.query.userId;
-    if (userId) {
-      delete usersSocketMap[userId];
-      io.emit("getOnlineUsers", Object.keys(usersSocketMap));
-    }
-  });
+      });
 });
 
-export { app, io, server };
+
+
+export { app,io,server };
