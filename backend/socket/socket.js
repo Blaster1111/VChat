@@ -57,9 +57,16 @@ io.on('connection', (socket) => {
       }
       conversation.messages.push(newMessage._id);
       await Promise.all([conversation.save(), newMessage.save()]);
-      const receiverSocketId = getReceiverSocketId(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('newMessage', newMessage);
+  
+      // Emit the message to the sender
+      socket.emit('newMessage', newMessage);
+  
+      // Check if the receiver is not the same as the sender
+      if (senderId !== receiverId) {
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit('newMessage', newMessage);
+        }
       }
     } catch (error) {
       console.error('Error handling message event:', error);
