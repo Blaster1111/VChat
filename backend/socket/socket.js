@@ -13,10 +13,9 @@ const io = new Server(server, {
 });
 
 export const getReceiverSocketId = (receiverId) => {
-    return Object.entries(usersSocketMap).find(
-      ([userId, socketId]) => userId === receiverId.toString()
-    )?.[1];
-  };
+  return Object.entries(usersSocketMap).find(([userId, socketId]) => userId === receiverId.toString())?.[1];
+};
+
 const usersSocketMap = {}; //{userId:socketId}
 
 io.on('connection', (socket) => {
@@ -34,15 +33,13 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} joined room ${roomId}`);
   });
 
-  ocket.on('authToken', async (authToken) => {
+  socket.on('authToken', async (authToken) => {
     try {
       const decodedToken = decodeAuthToken(authToken);
       const senderId = decodedToken.userId;
-  
       // Add the senderId to the socket object or store it in a map
       // for future reference when handling messages
       socket.senderId = senderId;
-  
       // You can also emit an event back to the client if needed
       socket.emit('senderIdReceived', senderId);
     } catch (error) {
@@ -53,25 +50,13 @@ io.on('connection', (socket) => {
   socket.on('message', async ({ message, receiverId }) => {
     try {
       const senderId = socket.senderId;
-      const newMessage = new Message({
-        senderId,
-        receiverId,
-        message,
-      });
-  
-      let conversation = await Conversation.findOne({
-        participants: { $all: [senderId, receiverId] },
-      });
-  
+      const newMessage = new Message({ senderId, receiverId, message });
+      let conversation = await Conversation.findOne({ participants: { $all: [senderId, receiverId] } });
       if (!conversation) {
-        conversation = await Conversation.create({
-          participants: [senderId, receiverId],
-        });
+        conversation = await Conversation.create({ participants: [senderId, receiverId] });
       }
-  
       conversation.messages.push(newMessage._id);
       await Promise.all([conversation.save(), newMessage.save()]);
-  
       const receiverSocketId = getReceiverSocketId(receiverId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('newMessage', newMessage);
@@ -89,8 +74,6 @@ io.on('connection', (socket) => {
       io.emit("getOnlineUsers", Object.keys(usersSocketMap));
     }
   });
-
-  s
 });
 
 export { app, io, server };
