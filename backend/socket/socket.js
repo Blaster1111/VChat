@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import http from 'http';
 import express from "express";
 import { decodeAuthToken } from "../middleware/protectRoute.js";
+import Message from '../models/message.model.js';
 
 const app = express();
 
@@ -39,15 +40,20 @@ io.on('connection',(socket)=>{
         }
     })
 
-    socket.on("message", (msg) => {
-        console.log("Received message:", msg);
-        const { receiverId, message } = msg;
-        const receiverSocketId = getReceiverSocketId(receiverId);
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("message", { senderId: userId, message });
-        } else {
-          console.log("Receiver not found.");
-        }
+    socket.on('message', (data) => {
+        const { receiverId, message, authToken } = data;
+        const senderId = decodeAuthToken(authToken).userId;
+        const roomId = [senderId, receiverId].sort().join('-');
+      
+        const newMessage = new Message({ senderId, receiverId, message });
+        newMessage.save();
+      
+        io.to(roomId).emit('newMessage', newMessage);
+      });
+
+      socket.on('joinRoom', (roomId) => {
+        socket.join(roomId);
+        console.log(`Socket ${socket.id} joined room ${roomId}`);
       });
 });
 
