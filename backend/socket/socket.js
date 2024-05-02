@@ -35,18 +35,21 @@ io.on('connection', (socket) => {
     });
   
     socket.on('message', (data) => {
-      const { receiverId, message, senderId } = data;
-      const roomId = [senderId, receiverId].sort().join('-');
-      const newMessage = new Message({ senderId, receiverId, message });
-      newMessage.save();
-      io.to(roomId).emit('newMessage', newMessage);
-    });
+        const { message, receiverId, senderId } = data;
+        const roomId = [senderId, receiverId].sort().join('-'); // Create a unique room ID for each pair of users
+        const newMessage = new Message({ senderId, receiverId, message });
+        newMessage.save();
+        io.to(roomId).emit('newMessage', newMessage);
+      });
   
-    socket.on('joinRoom', (roomId) => {
-      socket.join(roomId);
-      console.log(`Socket ${socket.id} joined room ${roomId}`);
-    });
-  });
+    socket.on('joinRoom', (roomIds) => {
+        const roomIdArray = roomIds.split(',');
+        roomIdArray.forEach(roomId => {
+          socket.join(roomId);
+          console.log(`Socket ${socket.id} joined room ${roomId}`);
+        });
+      });
+});
 
 
 
