@@ -43,8 +43,8 @@ export const sendMessage = async(req,res)=>{
 
         //SOCKET IO FUNCTIONALITY WILL COME HERE
         const receiverSocketId = getReceiverSocketId(receiverId);
-        if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage",newMessage)
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("newMessage", newMessage);
         }
 
 

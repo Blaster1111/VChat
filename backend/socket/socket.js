@@ -20,42 +20,33 @@ export const getReceiverSocketId = (receiverId) =>{
 
 const usersSocketMap = {}; //{userId:socketId}
 
-io.on('connection',(socket)=>{
-    console.log("a user connected",socket.id);
-
-    const authToken = socket.handshake.query.authToken;
-    const userId = decodeAuthToken(authToken); //decoding authToken from queries to parse it to userId.
-
-    if(userId!="undefined") usersSocketMap[userId] = socket.id;
-
-    io.emit("getOnlineUsers",Object.keys(usersSocketMap));
-
-    //socket.on() is used to listen to the events. can be used both on client and server side.
+io.on('connection', (socket) => {
+    console.log("a user connected", socket.id);
+  
+    io.emit("getOnlineUsers", Object.keys(usersSocketMap));
+  
     socket.on("disconnect", () => {
-        console.log("user disconnected", socket.id);
-        const userId = socket.handshake.query.userId;
-        if (userId) {
-            delete usersSocketMap[userId];
-            io.emit("getOnlineUsers", Object.keys(usersSocketMap));
-        }
-    })
-
+      console.log("user disconnected", socket.id);
+      const userId = socket.handshake.query.userId;
+      if (userId) {
+        delete usersSocketMap[userId];
+        io.emit("getOnlineUsers", Object.keys(usersSocketMap));
+      }
+    });
+  
     socket.on('message', (data) => {
-        const { receiverId, message, authToken } = data;
-        const senderId = decodeAuthToken(authToken).userId;
-        const roomId = [senderId, receiverId].sort().join('-');
-      
-        const newMessage = new Message({ senderId, receiverId, message });
-        newMessage.save();
-      
-        io.to(roomId).emit('newMessage', newMessage);
-      });
-
-      socket.on('joinRoom', (roomId) => {
-        socket.join(roomId);
-        console.log(`Socket ${socket.id} joined room ${roomId}`);
-      });
-});
+      const { receiverId, message, senderId } = data;
+      const roomId = [senderId, receiverId].sort().join('-');
+      const newMessage = new Message({ senderId, receiverId, message });
+      newMessage.save();
+      io.to(roomId).emit('newMessage', newMessage);
+    });
+  
+    socket.on('joinRoom', (roomId) => {
+      socket.join(roomId);
+      console.log(`Socket ${socket.id} joined room ${roomId}`);
+    });
+  });
 
 
 
